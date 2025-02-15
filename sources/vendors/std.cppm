@@ -46,9 +46,9 @@ export
     using ::fflush;
     using ::FILE;
     using ::fwrite;
-    using ::stderr;
-    using ::stdin;
-    using ::stdout;
+    // using ::stderr;
+    // using ::stdin;
+    // using ::stdout;
 }
 
 export namespace std
@@ -86,9 +86,9 @@ export namespace std
     using std::initializer_list;
     using std::nullptr_t;
 
-    using ::stderr;
-    using ::stdin;
-    using ::stdout;
+    // using ::stderr;
+    // using ::stdin;
+    // using ::stdout;
     using std::cerr;
     using std::cin;
     using std::cout;

@@ -1,0 +1,8 @@
+.git
+
+# gitignore at /
+.vs
+.vscode
+build/
+out/
+CMakeUserPresets.json

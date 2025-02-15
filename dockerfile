@@ -5,6 +5,7 @@ ARG CATCH2_VERSION="3.8.0"
 ARG CPPTRACE_VERSION="0.7.5"
 ARG FMT_VERSION="11.1.3"
 ARG MAGIC_ENUM_VERSION="0.9.7"
+ARG TOOLCHAIN_URI="20250114/llvm-mingw-20250114-ucrt-ubuntu-20.04-x86_64.tar.xz"
 ARG INSTALL_DIR="/out"
 
 # -------------------------------------------------------------------------------------------------
@@ -13,8 +14,6 @@ ARG INSTALL_DIR="/out"
 
 RUN apt-get update \
     && apt-get install --yes --no-install-recommends \
-    clang-$CLANG_VERSION \
-    libc++-$CLANG_VERSION-dev \
     ninja-build \
     cmake \
     pkg-config \
@@ -22,10 +21,25 @@ RUN apt-get update \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-ENV CC="clang-$CLANG_VERSION" \
-    CXX="clang++-$CLANG_VERSION" \
-    CXXFLAGS="-stdlib=libc++" \
-    CMAKE_GENERATOR="Ninja"
+ENV CMAKE_GENERATOR="Ninja"
+
+# -------------------------------------------------------------------------------------------------
+# Install toolchain
+# -------------------------------------------------------------------------------------------------
+
+ENV TOOLCHAIN_ROOT="/opt/llvm-mingw"
+RUN wget https://github.com/mstorsjo/llvm-mingw/releases/download/$TOOLCHAIN_URI \
+    -O llvm-mingw.tar.xz \
+    && mkdir $TOOLCHAIN_ROOT \
+    && tar -xf llvm-mingw.tar.xz --directory $TOOLCHAIN_ROOT --strip-components=1 \
+    && rm llvm-mingw.tar.xz
+
+ENV PATH=$TOOLCHAIN_ROOT/bin:$PATH \
+    CC="$TOOLCHAIN_ROOT/bin/clang" \
+    CXX="$TOOLCHAIN_ROOT/bin/clang++" \
+    CMAKE_TOOLCHAIN_FILE="/opt/cmake/toolchain.cmake"
+
+COPY cmake/llvm-mingw-w64-toolchain.cmake $CMAKE_TOOLCHAIN_FILE
 
 # -------------------------------------------------------------------------------------------------
 # Install catch2, required by
@@ -40,6 +54,8 @@ RUN git clone "https://github.com/catchorg/catch2.git" \
     && cmake -S . -B build \
     && cmake --build build \
     && cmake --install build --prefix /out
+
+    # --target Catch2
 
 # -------------------------------------------------------------------------------------------------
 # Install cpptrace, required by
@@ -66,7 +82,7 @@ RUN git clone "https://github.com/fmtlib/fmt.git" \
     --depth 1 --branch $FMT_VERSION \
     && cd fmt \
     && cmake -S . -B build \
-    && cmake --build build \
+    && cmake --build build --target fmt \
     && cmake --install build --prefix /out
 
 # -------------------------------------------------------------------------------------------------
@@ -76,11 +92,11 @@ RUN git clone "https://github.com/fmtlib/fmt.git" \
 
 FROM base AS magic_enum-builder
 
+# We dont need to build anything for magic_enum, its header only
 RUN git clone "https://github.com/neargye/magic_enum.git" \
     --depth 1 --branch v$MAGIC_ENUM_VERSION \
     && cd magic_enum \
     && cmake -S . -B build \
-    && cmake --build build \
     && cmake --install build --prefix /out
 
 # -------------------------------------------------------------------------------------------------
